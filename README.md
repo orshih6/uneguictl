@@ -32,6 +32,7 @@ make install    # into $GOBIN
 | `show <url or slug>` | One advert in full: price, features, description, photos, seller. `--phone` adds the seller's number. |
 | `categories [category]` | The category tree with paths; with a category, the ones directly under it (down to single phone or car models). |
 | `filters <category>` | A category's filters and their values, for `search --filter`. |
+| `watch` | A Telegram bot: runs saved search rules on a schedule and sends each new match in full. |
 
 Every command takes `--json`. Results go to standard output; the "N adverts match" line and
 errors go to standard error, so `--json | jq` stays clean.
@@ -63,7 +64,54 @@ uneguictl search macbook --json | jq -r '.items[] | "\(.price)\t\(.title)\t\(.ur
 
 `show --phone` fetches the number the site shows to anyone who clicks "show phone". The site
 counts each such request as a phone view that the seller sees, so it is never fetched unless
-asked for, and never for a whole search.
+asked for, and never for a whole search. `watch` follows the same rule: it fetches a number
+only when you send `/phone` for that one advert.
+
+### Watching for new adverts on Telegram
+
+`uneguictl watch` runs as a Telegram bot, e.g. on a server. Every `--every` (default 15m)
+it runs each rule against the newest adverts and sends every new match as one message: price,
+battery, every feature, location, posting time, seller, the whole description, the first
+photo and the link. A matching advert that gets cheaper is sent again with the old price. A
+rule's first run sends what already matches, the 10 cheapest in full and the rest as a list.
+
+Rules are managed from the chat:
+
+| Message | |
+|---|---|
+| `/add <name> key=value…` | Add a rule, or replace the one with that name (it then starts afresh) |
+| `/rules` | List the rules |
+| `/pause`, `/resume`, `/remove <name>` | |
+| `/check [name]` | Run now instead of waiting |
+| `/phone <id>` | The seller's number for one advert; each message carries a tappable `/phone_<id>` |
+
+```
+/add promax category=utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro-max max=2.5m battery=90 cycles=100 exclude=solis|солис
+```
+
+Rule keys: `category=` (path or a category URL copied from the site), `q=` (words, `+` for
+spaces; bare words work too), `min=` / `max=`, `filter=` (repeatable), `battery=` (lowest
+health %), `cycles=` (most cycles), `unstated=yes`, `include=` / `exclude=` (case-insensitive
+regular expressions over title and description, repeatable), `match=yes`, `nopromoted=yes`,
+`limit=` (newest adverts to look through, default 200).
+
+Battery health and cycles are read from what the seller wrote (`bh100`, `BH-89%`,
+`Battery 91%`, `Баттерей 89`, `cc 50`). Every figure a seller gives must be within the rule,
+and at least one bounded figure must be given, unless `unstated=yes`. A replaced battery also
+shows 100%, so exclude "solis"/"солис" (replaced) when you want original parts.
+
+The bot obeys only `TELEGRAM_CHAT_ID` and ignores every other chat. Give it a bot of its own
+from @BotFather: it reads the bot's messages with `getUpdates`, which a bot shared with
+another program would fight over.
+
+```bash
+TELEGRAM_BOT_TOKEN=… TELEGRAM_CHAT_ID=… uneguictl watch --state /var/lib/uneguictl/watch.json
+```
+
+`--state` keeps the rules, every advert each rule has looked at and the Telegram position;
+adverts unseen for 30 days are forgotten. `--rule '<as /add takes it>'` adds a rule at start.
+`--once` runs the rules a single time without reading Telegram, and without the
+`TELEGRAM_*` variables prints the messages instead, for trying a rule out.
 
 ## How it works
 

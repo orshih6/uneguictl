@@ -96,6 +96,7 @@ func newRootCommand() *cobra.Command {
 		newShowCommand(),
 		newCategoriesCommand(),
 		newFiltersCommand(),
+		newWatchCommand(),
 	)
 	return cmd
 }
