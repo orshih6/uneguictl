@@ -59,6 +59,22 @@ func (t *Telegram) Send(ctx context.Context, text, image string) error {
 	}
 }
 
+// Command is one entry of the menu Telegram shows when you type "/".
+type Command struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+// SetCommands replaces the bot's command menu.
+func (t *Telegram) SetCommands(ctx context.Context, cmds []Command) error {
+	b, err := json.Marshal(cmds)
+	if err != nil {
+		return err
+	}
+	_, err = t.call(ctx, "setMyCommands", url.Values{"commands": {string(b)}}, nil)
+	return err
+}
+
 // Updates waits up to timeout for messages sent to the bot from offset on,
 // in any chat; the caller decides whom to answer. The next offset is the
 // last UpdateID + 1.

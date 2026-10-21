@@ -211,3 +211,17 @@ func TestAdvertMessageFitsTelegram(t *testing.T) {
 		t.Error("description was not escaped")
 	}
 }
+
+func TestEveryMenuCommandIsHandled(t *testing.T) {
+	w, rec := newTestWatcher(t, &fakeSite{})
+	b := &bot{watcher: w, chat: "42", every: time.Hour}
+	for _, c := range botCommands {
+		rec.msgs = nil
+		b.handle(context.Background(), "/"+c.Command)
+		for _, m := range rec.msgs {
+			if strings.Contains(m.text, "I don't know that one") {
+				t.Errorf("menu command /%s is not handled", c.Command)
+			}
+		}
+	}
+}

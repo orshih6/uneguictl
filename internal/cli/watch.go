@@ -370,6 +370,9 @@ type bot struct {
 
 func (b *bot) run(ctx context.Context) error {
 	fmt.Fprintf(b.log, "watching %d rules every %s\n", len(b.state.Rules), b.every)
+	if err := b.tg.SetCommands(ctx, botCommands); err != nil {
+		fmt.Fprintf(b.log, "setting the command menu: %v\n", err)
+	}
 	next := time.Now()
 	for {
 		if !time.Now().Before(next) {
@@ -438,6 +441,19 @@ func (b *bot) reply(ctx context.Context, text string) {
 	if err := b.out.Send(ctx, text, ""); err != nil {
 		fmt.Fprintf(b.log, "%v\n", err)
 	}
+}
+
+// botCommands is the menu Telegram shows when you type "/"; handle must
+// understand each of them.
+var botCommands = []watch.Command{
+	{Command: "add", Description: "Add or replace a rule: /add <name> key=value…"},
+	{Command: "rules", Description: "List the rules"},
+	{Command: "check", Description: "Run the rules now: /check [name]"},
+	{Command: "pause", Description: "Pause a rule: /pause <name>"},
+	{Command: "resume", Description: "Resume a paused rule: /resume <name>"},
+	{Command: "remove", Description: "Delete a rule: /remove <name>"},
+	{Command: "phone", Description: "Seller's number for one advert: /phone <id>"},
+	{Command: "help", Description: "How rules work, with an example"},
 }
 
 var phoneCmdRE = regexp.MustCompile(`^/phone_(\d+)$`)
