@@ -1,0 +1,367 @@
+{
+ "next_page": "?rubric=2519&q=iphone&count=998&cursor=10833763&page_size=3&search_id=35ea985d-b078-4923-8b52-553ea66aed88",
+ "listing_type": "card",
+ "count": 998,
+ "count_str": "998",
+ "location_count": 998,
+ "location_count_str": "998",
+ "total_adverts_string": "998 Зар байна",
+ "total_pages": null,
+ "title": "“iphone” хайлтын үр дүн",
+ "url": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/?q=iphone",
+ "survey_url": "",
+ "rubric": {
+  "id": 2519,
+  "name": "iPhone",
+  "is_adult": false,
+  "is_job": false,
+  "is_map": false,
+  "map_view_on_listing": "roadmap",
+  "is_real_estate_rubric": false,
+  "free_stuff": false,
+  "slug": "iphone",
+  "ancestors": [
+   {
+    "id": 1726,
+    "name": "Утас, дугаар",
+    "slug": "utas--dugaar",
+    "link": "/utas--dugaar/"
+   },
+   {
+    "id": 1795,
+    "name": "Гар утас ба утаснууд",
+    "slug": "gar-utas-ba-utasnuud",
+    "link": "/utas--dugaar/gar-utas-ba-utasnuud/"
+   }
+  ]
+ },
+ "location_ids": [],
+ "q": "iphone",
+ "author": null,
+ "ordering": "relevance",
+ "ordering_choices": [
+  {
+   "label": "Холбогдолтой",
+   "value": "relevance"
+  },
+  {
+   "label": "Огноогоор",
+   "value": "newest"
+  },
+  {
+   "label": "Үнэтэй нь эхэндээ",
+   "value": "expensive"
+  },
+  {
+   "label": "Хямд нь эхэндээ",
+   "value": "cheapest"
+  }
+ ],
+ "show_rating_onboarding": false,
+ "child_rubrics": [
+  {
+   "id": 5163,
+   "count": 112,
+   "count_str": "112",
+   "name": "iPhone 18 Pro Max",
+   "short_name": null,
+   "path": "utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-18-pro-max/?q=iphone"
+  },
+  {
+   "id": 5162,
+   "count": 112,
+   "count_str": "112",
+   "name": "iPhone 18 Pro",
+   "short_name": null,
+   "path": "utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-18-pro/?q=iphone"
+  },
+  {
+   "id": 5161,
+   "count": 1,
+   "count_str": "1",
+   "name": "iPhone 18",
+   "short_name": null,
+   "path": "utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-18/?q=iphone"
+  }
+ ],
+ "fast_filters": null,
+ "banner_entry_point": null,
+ "adverts": [
+  {
+   "id": 10828312,
+   "title": "Apple iPhone 15 Pro, 256 gb, Natural Titanium",
+   "description": "",
+   "price": "1.7 сая ₮",
+   "start_price": "",
+   "price_description": "Үнэ тохирно",
+   "currency": "MNT",
+   "price_without_currency": "1700000",
+   "first_thumb": "https://cdn1.unegui.mn/media/cache1/3f/32/3f325f16719083488f1e0e6f832214f2.webp",
+   "img_count": 3,
+   "published": "2 өдрийн өмнө",
+   "url": "/adv/10828312_apple-iphone-15-pro-256-gb-natural-titanium/",
+   "labels": [
+    {
+     "label": "verified_imei",
+     "text": "Баталгаажсан утас",
+     "color": "#00ba10"
+    }
+   ],
+   "location": "Улаанбаатар — Хан-Уул — Хансвилл хотхон",
+   "rubric": {
+    "id": 4774,
+    "show_company_logo": true,
+    "is_job": false,
+    "is_adult": false,
+    "hide_price": false,
+    "slug": "iphone-15-pro",
+    "ancestors": [
+     {
+      "id": 1726,
+      "name": "Утас, дугаар",
+      "slug": "utas--dugaar",
+      "link": "/utas--dugaar/"
+     },
+     {
+      "id": 1795,
+      "name": "Гар утас ба утаснууд",
+      "slug": "gar-utas-ba-utasnuud",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/"
+     },
+     {
+      "id": 2519,
+      "name": "iPhone",
+      "slug": "iphone",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/"
+     }
+    ]
+   },
+   "user": {
+    "id": 1000,
+    "name": "Seller 0",
+    "verified": false,
+    "logo": "",
+    "card_header_color": "",
+    "is_bussiness": false,
+    "emongolia_verified": true
+   },
+   "ad_type": {
+    "type": "premium",
+    "text": "VIP"
+   },
+   "in_vip_plus": false,
+   "credit": {},
+   "show_price_from": false,
+   "has_video": false,
+   "has_flatplan": false,
+   "is_new": false,
+   "show_publish_time": false,
+   "images": [
+    "https://cdn1.unegui.mn/media/cache1/3f/32/3f325f16719083488f1e0e6f832214f2.webp",
+    "https://cdn1.unegui.mn/media/cache1/52/54/52546f24914bd6e563a721321991b9b4.webp",
+    "https://cdn1.unegui.mn/media/cache1/c5/77/c57797c48f213633dd3810d0390e92a4.webp"
+   ],
+   "features": [],
+   "seo": {
+    "images": {
+     "alt_texts": [
+      "Apple iPhone 15 Pro, 256 gb, Natural Titanium, Улаанбаатар — Хан-Уул — Хансвилл хотхон",
+      "Apple iPhone 15 Pro, 256 gb, Natural Titanium, Улаанбаатар — Хан-Уул — Хансвилл хотхон - 2",
+      "Apple iPhone 15 Pro, 256 gb, Natural Titanium, Улаанбаатар — Хан-Уул — Хансвилл хотхон - 3"
+     ]
+    }
+   },
+   "reviews_summary": null
+  },
+  {
+   "id": 10830895,
+   "title": "Apple iPhone 18 Pro Max, 256 gb",
+   "description": "",
+   "price": "6.25 сая ₮",
+   "start_price": "",
+   "price_description": "Үнэ тохирно",
+   "currency": "MNT",
+   "price_without_currency": "6250000",
+   "first_thumb": "https://cdn1.unegui.mn/media/cache1/79/af/79afd9a3a4dd136680417e4f90554018.webp",
+   "img_count": 1,
+   "published": "1 өдрийн өмнө",
+   "url": "/adv/10830895_apple-iphone-18-pro-max-256-gb/",
+   "labels": [
+    {
+     "label": "verified_imei",
+     "text": "Баталгаажсан утас",
+     "color": "#00ba10"
+    }
+   ],
+   "location": "Улаанбаатар — Сүхбаатар — 2-р хороо",
+   "rubric": {
+    "id": 5163,
+    "show_company_logo": true,
+    "is_job": false,
+    "is_adult": false,
+    "hide_price": false,
+    "slug": "iphone-18-pro-max",
+    "ancestors": [
+     {
+      "id": 1726,
+      "name": "Утас, дугаар",
+      "slug": "utas--dugaar",
+      "link": "/utas--dugaar/"
+     },
+     {
+      "id": 1795,
+      "name": "Гар утас ба утаснууд",
+      "slug": "gar-utas-ba-utasnuud",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/"
+     },
+     {
+      "id": 2519,
+      "name": "iPhone",
+      "slug": "iphone",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/"
+     }
+    ]
+   },
+   "user": {
+    "id": 1001,
+    "name": "Seller 1",
+    "verified": false,
+    "logo": "",
+    "card_header_color": "",
+    "is_bussiness": false,
+    "emongolia_verified": false
+   },
+   "ad_type": {
+    "type": "premium",
+    "text": "VIP"
+   },
+   "in_vip_plus": false,
+   "credit": {},
+   "show_price_from": false,
+   "has_video": false,
+   "has_flatplan": false,
+   "is_new": false,
+   "show_publish_time": false,
+   "images": [
+    "https://cdn1.unegui.mn/media/cache1/79/af/79afd9a3a4dd136680417e4f90554018.webp"
+   ],
+   "features": [],
+   "seo": {
+    "images": {
+     "alt_texts": [
+      "Apple iPhone 18 Pro Max, 256 gb, Улаанбаатар — Сүхбаатар — 2-р хороо"
+     ]
+    }
+   },
+   "reviews_summary": null
+  },
+  {
+   "id": 10833763,
+   "title": "Apple iPhone 18 Pro, 256 gb",
+   "description": "",
+   "price": "5.2 сая ₮",
+   "start_price": "",
+   "price_description": "",
+   "currency": "MNT",
+   "price_without_currency": "5200000",
+   "first_thumb": "https://cdn1.unegui.mn/media/cache1/75/72/7572b223a9ee7e19fa83346cab495d65.webp",
+   "img_count": 2,
+   "published": "Өчигдөр",
+   "url": "/adv/10833763_apple-iphone-18-pro-256-gb/",
+   "labels": [
+    {
+     "label": "verified_imei",
+     "text": "Баталгаажсан утас",
+     "color": "#00ba10"
+    }
+   ],
+   "location": "Улаанбаатар — Хан-Уул — 21-р хороо",
+   "rubric": {
+    "id": 5162,
+    "show_company_logo": true,
+    "is_job": false,
+    "is_adult": false,
+    "hide_price": false,
+    "slug": "iphone-18-pro",
+    "ancestors": [
+     {
+      "id": 1726,
+      "name": "Утас, дугаар",
+      "slug": "utas--dugaar",
+      "link": "/utas--dugaar/"
+     },
+     {
+      "id": 1795,
+      "name": "Гар утас ба утаснууд",
+      "slug": "gar-utas-ba-utasnuud",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/"
+     },
+     {
+      "id": 2519,
+      "name": "iPhone",
+      "slug": "iphone",
+      "link": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/"
+     }
+    ]
+   },
+   "user": {
+    "id": 1002,
+    "name": "Seller 2",
+    "verified": false,
+    "logo": "",
+    "card_header_color": "",
+    "is_bussiness": false,
+    "emongolia_verified": false
+   },
+   "ad_type": {
+    "type": "premium",
+    "text": "VIP"
+   },
+   "in_vip_plus": false,
+   "credit": {},
+   "show_price_from": false,
+   "has_video": false,
+   "has_flatplan": false,
+   "is_new": false,
+   "show_publish_time": false,
+   "images": [
+    "https://cdn1.unegui.mn/media/cache1/75/72/7572b223a9ee7e19fa83346cab495d65.webp",
+    "https://cdn1.unegui.mn/media/cache1/ef/04/ef0437ad96a216830c1f9d3e99b1e9d9.webp"
+   ],
+   "features": [],
+   "seo": {
+    "images": {
+     "alt_texts": [
+      "Apple iPhone 18 Pro, 256 gb, Улаанбаатар — Хан-Уул — 21-р хороо",
+      "Apple iPhone 18 Pro, 256 gb, Улаанбаатар — Хан-Уул — 21-р хороо - 2"
+     ]
+    }
+   },
+   "reviews_summary": null
+  }
+ ],
+ "seo": null,
+ "show_new_buildings_rubric": false,
+ "show_new_buildings_gallery": false,
+ "show_new_building_link": false,
+ "is_cookie_location": false,
+ "location_area": null,
+ "category_multiselect": {
+  "enabled": false,
+  "name": "",
+  "amount_options": 30,
+  "selected": [],
+  "show_popular_block": true
+ },
+ "search_id": "35ea985d-b078-4923-8b52-553ea66aed88",
+ "has_location_filter": false,
+ "elastic_template": "unegui_search_template",
+ "re_navigation_flag": {
+  "value": null
+ },
+ "seo_block": null,
+ "fallback_recommendations": null,
+ "fallback_recommendation_id": null,
+ "fallback_recommendation_source": null,
+ "other_regions_header_index": null
+}

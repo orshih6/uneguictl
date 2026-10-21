@@ -1,0 +1,142 @@
+{
+ "id": 10828312,
+ "slug": "apple-iphone-15-pro-256-gb-natural-titanium",
+ "is_adult": false,
+ "is_job": false,
+ "free_stuff": false,
+ "show_price_from": false,
+ "gallery": {
+  "preview": [
+   "https://cdn1.unegui.mn/media/cache1/51/3f/513fdae1824fb25ceda0b221b2a99f3b.webp",
+   "https://cdn1.unegui.mn/media/cache1/5d/a0/5da06904623c4828cf1b3c7c695a9a51.webp",
+   "https://cdn1.unegui.mn/media/cache1/06/4a/064aa242ca19988e6dbb3aff3255da4c.webp"
+  ],
+  "small": [
+   "https://cdn1.unegui.mn/media/cache1/21/c3/21c3d04f58d335518ad6149e96bd3fa2.jpg",
+   "https://cdn1.unegui.mn/media/cache1/5a/84/5a84cd64f29548ddf52ea721c196a1bb.jpg",
+   "https://cdn1.unegui.mn/media/cache1/33/eb/33eb25d18921b839cbfe556b9f290003.jpg"
+  ],
+  "full": [
+   "https://cdn1.unegui.mn/media/cache1/98/50/9850611b673ea2437a0f7980028f112b.webp",
+   "https://cdn1.unegui.mn/media/cache1/f6/3a/f63a9fc4c626352574380cfbdc4ebe52.webp",
+   "https://cdn1.unegui.mn/media/cache1/96/02/9602dafd0fcc7f4fb047b53d4c43d9f9.webp"
+  ]
+ },
+ "video": null,
+ "youtube": null,
+ "tiktok": null,
+ "counters": {
+  "favorites": 3,
+  "advert_view": 273,
+  "phone_view": 1,
+  "published": "2 өдрийн өмнө"
+ },
+ "price": {
+  "price": "1.7 сая ₮",
+  "start_price": null,
+  "square_meter_price": null,
+  "description": "Үнэ тохирно",
+  "price_without_currency": "1700000"
+ },
+ "name": "Apple iPhone 15 Pro, 256 gb, Natural Titanium",
+ "virtual_tour": "",
+ "imei": null,
+ "location": {
+  "name": "Улаанбаатар — Хан-Уул — Хансвилл хотхон",
+  "coordinates": null,
+  "map_type": "roadmap"
+ },
+ "vin": null,
+ "features": [
+  {
+   "name": "Өнгө",
+   "value": "Natural Titanium",
+   "url": "https://www.unegui.mn/utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro/ng---30/",
+   "values": []
+  },
+  {
+   "name": "Багтаамж",
+   "value": "256 gb",
+   "url": "https://www.unegui.mn/utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro/bagtaamzh---7/",
+   "values": []
+  },
+  {
+   "name": "Шинэ / Хуучин",
+   "value": "Хуучин",
+   "url": "https://www.unegui.mn/utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro/shine--huuchin---2/",
+   "values": []
+  }
+ ],
+ "description": "Test description.\r\nSecond line.",
+ "askwire": null,
+ "alif": null,
+ "zeelme": null,
+ "categories": [
+  {
+   "id": 1726,
+   "name": "Утас, дугаар",
+   "link": "/utas--dugaar/",
+   "slug": "utas--dugaar"
+  },
+  {
+   "id": 1795,
+   "name": "Гар утас ба утаснууд",
+   "link": "/utas--dugaar/gar-utas-ba-utasnuud/",
+   "slug": "gar-utas-ba-utasnuud"
+  },
+  {
+   "id": 2519,
+   "name": "iPhone",
+   "link": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/",
+   "slug": "iphone"
+  },
+  {
+   "id": 4774,
+   "name": "iPhone 15 Pro",
+   "link": "/utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro/",
+   "slug": "iphone-15-pro"
+  }
+ ],
+ "user": {
+  "id": 1000,
+  "name": "Seller 0",
+  "homepage_url": "/items/author/1000/",
+  "website": null,
+  "seller_rating": null,
+  "posting": "Элссэн огноо Гуравдугаар сар 2024",
+  "active_adverts": "1 идэвхтэй зар",
+  "logo": null,
+  "is_verified": false,
+  "card_header_color": "",
+  "is_emongolia": true,
+  "is_business_account": false,
+  "is_company": false,
+  "description": null,
+  "contacts": {
+   "is_phone": true,
+   "is_chat": true,
+   "is_whatsapp": false,
+   "is_email": false,
+   "is_cv": false
+  },
+  "emongolia_verified_date": "2026 оны 10-р сараас хойш баталгаажсан"
+ },
+ "seo": null,
+ "available_for_all": true,
+ "is_closed": false,
+ "permissions": {
+  "phone": "show data",
+  "whatsapp": "show data",
+  "email": "show data",
+  "cv_form": "show_auth_dialogue",
+  "chat": "show_auth_dialogue"
+ },
+ "item_link": null,
+ "pseudo_categories": [],
+ "advert_reviews": null,
+ "driving_license_enabled": false,
+ "spoken_languages_enabled": false,
+ "right_to_work_enabled": false,
+ "is_editable": true,
+ "avoid_scammers_url": "https://safety.unegui.mn/"
+}
