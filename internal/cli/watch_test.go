@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -63,11 +64,28 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
 type sent struct{ text, image string }
 
-type recorder struct{ msgs []sent }
+// recorder keeps what was sent; the connector's background checks send too.
+type recorder struct {
+	mu   sync.Mutex
+	msgs []sent
+}
 
 func (r *recorder) Send(_ context.Context, text, image string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.msgs = append(r.msgs, sent{text, image})
 	return nil
+}
+
+// texts returns what was sent so far, joined.
+func (r *recorder) texts() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var b strings.Builder
+	for _, m := range r.msgs {
+		b.WriteString(m.text + "\n---\n")
+	}
+	return b.String()
 }
 
 func newTestWatcher(t *testing.T, site *fakeSite) (*watcher, *recorder) {

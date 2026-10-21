@@ -1,0 +1,24 @@
+# kube-router enforces NetworkPolicy on this cluster.
+
+# Nothing may connect to the bot except claudeweb's api pod, on the connector's
+# port 8790. The bot needs no other inbound traffic (Telegram is polled).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: uneguictl-ingress
+  namespace: uneguictl
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: uneguictl
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: claudeweb
+          podSelector:
+            matchLabels:
+              app: claudeweb-api
+      ports:
+        - port: 8790

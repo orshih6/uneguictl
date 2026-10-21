@@ -170,3 +170,18 @@ func Sleep(ctx context.Context, d time.Duration) error {
 		return nil
 	}
 }
+
+// KeepTyping shows "typing…" in the chat until the returned stop is called;
+// Telegram clears it after five seconds, so it is sent again every four.
+func (t *Telegram) KeepTyping(ctx context.Context) (stop func()) {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		for {
+			_, _ = t.call(ctx, "sendChatAction", url.Values{"chat_id": {t.ChatID}, "action": {"typing"}}, nil)
+			if Sleep(ctx, 4*time.Second) != nil {
+				return
+			}
+		}
+	}()
+	return cancel
+}

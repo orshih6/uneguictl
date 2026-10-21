@@ -11,10 +11,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 
+	"github.com/orshih6/uneguictl/internal/claudeweb"
 	"github.com/orshih6/uneguictl/internal/unegui"
 	"github.com/orshih6/uneguictl/internal/watch"
 )
@@ -30,10 +33,11 @@ const (
 )
 
 type watchOptions struct {
-	state string
-	every time.Duration
-	once  bool
-	rules []string
+	state     string
+	every     time.Duration
+	once      bool
+	rules     []string
+	connector string
 }
 
 func newWatchCommand() *cobra.Command {
@@ -68,6 +72,12 @@ position are kept in --state.
 The seller's phone number is never fetched on its own: each advert carries a
 /phone_<id> link to ask for it.
 
+Any other message goes to Claude in claudeweb (CLAUDEWEB_API_URL,
+CLAUDEWEB_API_TOKEN; CLAUDEWEB_MODEL, default sonnet), in a chat with the
+connector CLAUDEWEB_CONNECTOR (default unegui) turned on; /new starts a new
+chat. --connector serves that connector: unegui.mn lookups and the rules over
+MCP, behind UNEGUICTL_CONNECTOR_TOKEN, with no phone tool.
+
 With --once, watch runs the rules one time and exits, without reading
 Telegram; with no TELEGRAM_* set it prints the messages instead of sending.`,
 		Example: `  TELEGRAM_BOT_TOKEN=… TELEGRAM_CHAT_ID=… uneguictl watch --state /var/lib/uneguictl/state.json
@@ -82,6 +92,7 @@ Telegram; with no TELEGRAM_* set it prints the messages instead of sending.`,
 	f.DurationVar(&o.every, "every", 15*time.Minute, "how often to run the rules")
 	f.BoolVar(&o.once, "once", false, "run the rules once and exit, without reading Telegram")
 	f.StringArrayVar(&o.rules, "rule", nil, "add or replace a rule before starting, as /add takes it (repeatable)")
+	f.StringVar(&o.connector, "connector", "", "serve the MCP connector for claudeweb on this address, e.g. :8790 (needs UNEGUICTL_CONNECTOR_TOKEN)")
 	return cmd
 }
 
@@ -94,7 +105,7 @@ func runWatch(cmd *cobra.Command, o watchOptions) error {
 		return err
 	}
 	for _, s := range o.rules {
-		r, err := parseRule(strings.Fields(s))
+		r, err := parseRule(splitArgs(s))
 		if err != nil {
 			return fmt.Errorf("--rule %q: %w", s, err)
 		}
@@ -125,7 +136,36 @@ func runWatch(cmd *cobra.Command, o watchOptions) error {
 		return w.checkAll(ctx)
 	}
 	b := &bot{watcher: w, tg: tg, chat: chat, every: o.every}
+	if u := os.Getenv("CLAUDEWEB_API_URL"); u != "" {
+		b.claude = &claudeweb.Client{URL: u, Token: os.Getenv("CLAUDEWEB_API_TOKEN")}
+		b.model = envOr("CLAUDEWEB_MODEL", "sonnet")
+		b.connector = envOr("CLAUDEWEB_CONNECTOR", "unegui")
+		b.chatURL = strings.TrimRight(os.Getenv("CLAUDEWEB_WEB_URL"), "/")
+	}
+	if o.connector != "" {
+		h, err := newConnector(b, os.Getenv("UNEGUICTL_CONNECTOR_TOKEN"))
+		if err != nil {
+			return err
+		}
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go func() {
+			if err := serveConnector(ctx, o.connector, h); err != nil {
+				fmt.Fprintf(w.log, "connector: %v\n", err)
+				cancel()
+			}
+		}()
+		fmt.Fprintf(w.log, "connector listening on %s/mcp\n", o.connector)
+		return b.run(ctx)
+	}
 	return b.run(ctx)
+}
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 // sender delivers a message; *watch.Telegram is the real one.
@@ -156,6 +196,9 @@ type watchSource interface {
 }
 
 type watcher struct {
+	// mu guards state and src: the Telegram loop, the scheduled checks and
+	// the connector all reach them.
+	mu    sync.Mutex
 	src   watchSource
 	out   sender
 	state *watch.State
@@ -164,25 +207,53 @@ type watcher struct {
 	now   func() time.Time
 }
 
-// checkAll runs every rule that is not paused, saving after each. It goes
-// on past a failing rule and returns the first error.
+// withState runs fn on the state under the lock and saves it after.
+func (w *watcher) withState(fn func(st *watch.State)) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	fn(w.state)
+	w.save()
+}
+
+// checkAll runs every rule that is not paused. It goes on past a failing
+// rule and returns the first error.
 func (w *watcher) checkAll(ctx context.Context) error {
-	var first error
-	for _, r := range w.state.Rules {
-		if r.Paused {
-			continue
+	var names []string
+	w.withState(func(st *watch.State) {
+		for _, r := range st.Rules {
+			if !r.Paused {
+				names = append(names, r.Name)
+			}
 		}
-		if err := w.check(ctx, r); err != nil {
+	})
+	var first error
+	for _, name := range names {
+		if err := w.checkRule(ctx, name); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			fmt.Fprintf(w.log, "rule %s: %v\n", r.Name, err)
+			fmt.Fprintf(w.log, "%v\n", err)
 			if first == nil {
-				first = fmt.Errorf("rule %s: %w", r.Name, err)
+				first = err
 			}
 		}
 	}
 	return first
+}
+
+// checkRule runs the rule called name, if it still exists, holding the lock
+// for the whole run.
+func (w *watcher) checkRule(ctx context.Context, name string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	r := w.state.Rule(name)
+	if r == nil {
+		return nil
+	}
+	if err := w.check(ctx, *r); err != nil {
+		return fmt.Errorf("rule %s: %w", r.Name, err)
+	}
+	return nil
 }
 
 type match struct {
@@ -363,13 +434,27 @@ type bot struct {
 	tg    *watch.Telegram
 	chat  string
 	every time.Duration
+	// claude, if set, answers messages that are not commands, in a
+	// claudeweb chat with the connector named connector turned on.
+	claude    *claudeweb.Client
+	model     string
+	connector string
+	// chatURL is claudeweb's web address, to link a conversation.
+	chatURL string
+	// ctx is run's context, for checks the connector starts.
+	ctx context.Context
+
+	errMu sync.Mutex
 	// lastErr is the last check failure reported to the chat, so a
 	// lasting one (Cloudflare, say) is reported once, not every run.
 	lastErr string
 }
 
 func (b *bot) run(ctx context.Context) error {
-	fmt.Fprintf(b.log, "watching %d rules every %s\n", len(b.state.Rules), b.every)
+	b.ctx = ctx
+	var rules int
+	b.withState(func(st *watch.State) { rules = len(st.Rules) })
+	fmt.Fprintf(b.log, "watching %d rules every %s\n", rules, b.every)
 	if err := b.tg.SetCommands(ctx, botCommands); err != nil {
 		fmt.Fprintf(b.log, "setting the command menu: %v\n", err)
 	}
@@ -382,14 +467,11 @@ func (b *bot) run(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		wait := time.Until(next)
-		if wait > 50*time.Second {
-			wait = 50 * time.Second
-		}
-		if wait < time.Second {
-			wait = time.Second
-		}
-		msgs, err := b.tg.Updates(ctx, b.state.Offset, wait)
+		wait := min(time.Until(next), 50*time.Second)
+		wait = max(wait, time.Second)
+		var offset int64
+		b.withState(func(st *watch.State) { offset = st.Offset })
+		msgs, err := b.tg.Updates(ctx, offset, wait)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -401,8 +483,7 @@ func (b *bot) run(ctx context.Context) error {
 			continue
 		}
 		for _, m := range msgs {
-			b.state.Offset = m.UpdateID + 1
-			b.save()
+			b.withState(func(st *watch.State) { st.Offset = m.UpdateID + 1 })
 			if m.ChatID != b.chat {
 				fmt.Fprintf(b.log, "ignoring a message from chat %s\n", m.ChatID)
 				continue
@@ -420,12 +501,11 @@ func (b *bot) checkAndReport(ctx context.Context, name string) {
 	var err error
 	if name == "" {
 		err = b.checkAll(ctx)
-	} else if r := b.state.Rule(name); r != nil {
-		err = b.check(ctx, *r)
-		if err != nil {
-			err = fmt.Errorf("rule %s: %w", r.Name, err)
-		}
+	} else {
+		err = b.checkRule(ctx, name)
 	}
+	b.errMu.Lock()
+	defer b.errMu.Unlock()
 	if err == nil || ctx.Err() != nil {
 		b.lastErr = ""
 		return
@@ -435,6 +515,16 @@ func (b *bot) checkAndReport(ctx context.Context, name string) {
 		b.lastErr = msg
 		b.reply(ctx, "⚠️ "+html.EscapeString(msg))
 	}
+}
+
+// checkSoon runs a rule in the background, for the connector, which should
+// not wait for a check that can take a minute.
+func (b *bot) checkSoon(name string) {
+	ctx := b.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	go b.checkAndReport(ctx, name)
 }
 
 func (b *bot) reply(ctx context.Context, text string) {
@@ -453,16 +543,22 @@ var botCommands = []watch.Command{
 	{Command: "resume", Description: "Resume a paused rule: /resume <name>"},
 	{Command: "remove", Description: "Delete a rule: /remove <name>"},
 	{Command: "phone", Description: "Seller's number for one advert: /phone <id>"},
+	{Command: "new", Description: "Start a new conversation with Claude"},
 	{Command: "help", Description: "How rules work, with an example"},
 }
 
 var phoneCmdRE = regexp.MustCompile(`^/phone_(\d+)$`)
 
-// handle acts on one command. It reports whether it ran every rule, so the
-// next scheduled run can wait a full interval.
+// handle acts on one message: a command, or anything else for Claude. It
+// reports whether it ran every rule, so the next scheduled run can wait a
+// full interval.
 func (b *bot) handle(ctx context.Context, text string) (ranAll bool) {
 	words := strings.Fields(text)
 	if len(words) == 0 {
+		return false
+	}
+	if !strings.HasPrefix(words[0], "/") {
+		b.talk(ctx, text)
 		return false
 	}
 	cmd, _, _ := strings.Cut(strings.ToLower(words[0]), "@")
@@ -473,59 +569,33 @@ func (b *bot) handle(ctx context.Context, text string) (ranAll bool) {
 	e := html.EscapeString
 	switch cmd {
 	case "/add":
-		r, err := parseRule(args)
+		_, rest, _ := strings.Cut(strings.TrimSpace(text), " ")
+		r, err := parseRule(splitArgs(rest))
 		if err != nil {
 			b.reply(ctx, "❌ "+e(err.Error())+"\n\n<pre>/add "+e(ruleHelp)+"</pre>")
 			return false
 		}
-		b.state.SetRule(r)
-		b.save()
+		b.withState(func(st *watch.State) { st.SetRule(r) })
 		b.reply(ctx, "✅ Saved <code>"+e(r.String())+"</code>\nChecking it now…")
 		b.checkAndReport(ctx, r.Name)
 	case "/rules", "/list":
-		if len(b.state.Rules) == 0 {
-			b.reply(ctx, "No rules yet. /add one; /help shows how.")
-			return false
-		}
-		var s strings.Builder
-		for _, r := range b.state.Rules {
-			matched := 0
-			for _, seen := range b.state.Seen[r.Name] {
-				if seen.Matched {
-					matched++
-				}
-			}
-			state := "▶️"
-			if r.Paused {
-				state = "⏸"
-			}
-			fmt.Fprintf(&s, "%s <code>%s</code>\n   %d matched so far\n", state, e(r.String()), matched)
-		}
-		b.reply(ctx, s.String())
+		b.reply(ctx, b.rulesMessage())
 	case "/remove", "/delete", "/pause", "/resume":
 		if len(args) != 1 {
 			b.reply(ctx, "Usage: "+cmd+" &lt;rule name&gt;")
 			return false
 		}
-		r := b.state.Rule(args[0])
-		if r == nil {
-			b.reply(ctx, "No rule called "+e(args[0])+". /rules lists them.")
+		name, err := b.changeRule(strings.TrimPrefix(cmd, "/"), args[0])
+		if err != nil {
+			b.reply(ctx, e(err.Error())+" /rules lists them.")
 			return false
 		}
-		name := r.Name
-		switch cmd {
-		case "/pause":
-			r.Paused = true
-		case "/resume":
-			r.Paused = false
-		default:
-			b.state.RemoveRule(name)
-		}
-		b.save()
 		b.reply(ctx, "✅ "+strings.TrimPrefix(cmd, "/")+"d "+e(name))
 	case "/check":
 		if len(args) > 0 {
-			if b.state.Rule(args[0]) == nil {
+			var found bool
+			b.withState(func(st *watch.State) { found = st.Rule(args[0]) != nil })
+			if !found {
 				b.reply(ctx, "No rule called "+e(args[0])+". /rules lists them.")
 				return false
 			}
@@ -548,19 +618,191 @@ func (b *bot) handle(ctx context.Context, text string) (ranAll bool) {
 			return false
 		}
 		// Asked for by a person, one advert at a time: the only way the
-		// watch ever fetches a number.
+		// watch ever fetches a number. The connector has no such tool.
+		b.mu.Lock()
 		phone, err := b.src.Phone(ctx, id)
+		b.mu.Unlock()
 		if err != nil {
 			b.reply(ctx, "❌ "+e(err.Error()))
 			return false
 		}
 		b.reply(ctx, fmt.Sprintf("📞 %s (advert %d)", e(phone), id))
+	case "/new":
+		b.withState(func(st *watch.State) { st.Chat = watch.ChatRef{} })
+		b.reply(ctx, "Started afresh: your next message begins a new conversation with Claude.")
 	case "/start", "/help":
 		b.reply(ctx, botHelp())
 	default:
 		b.reply(ctx, "I don't know that one. /help lists what I understand.")
 	}
 	return false
+}
+
+// changeRule pauses, resumes or removes the rule called name and returns
+// its exact name.
+func (b *bot) changeRule(op, name string) (string, error) {
+	var found string
+	b.withState(func(st *watch.State) {
+		r := st.Rule(name)
+		if r == nil {
+			return
+		}
+		found = r.Name
+		switch op {
+		case "pause":
+			r.Paused = true
+		case "resume":
+			r.Paused = false
+		default:
+			st.RemoveRule(found)
+		}
+	})
+	if found == "" {
+		return "", fmt.Errorf("no rule called %q", name)
+	}
+	return found, nil
+}
+
+// ruleInfo is a rule as /rules and the connector show it.
+type ruleInfo struct {
+	Rule    string `json:"rule"`
+	Name    string `json:"name"`
+	Paused  bool   `json:"paused"`
+	Matched int    `json:"matched_so_far"`
+}
+
+func (b *bot) rules() []ruleInfo {
+	var out []ruleInfo
+	b.withState(func(st *watch.State) {
+		for _, r := range st.Rules {
+			matched := 0
+			for _, seen := range st.Seen[r.Name] {
+				if seen.Matched {
+					matched++
+				}
+			}
+			out = append(out, ruleInfo{Rule: r.String(), Name: r.Name, Paused: r.Paused, Matched: matched})
+		}
+	})
+	return out
+}
+
+func (b *bot) rulesMessage() string {
+	rules := b.rules()
+	if len(rules) == 0 {
+		return "No rules yet. /add one, or just tell me what you are looking for; /help shows how."
+	}
+	var s strings.Builder
+	for _, r := range rules {
+		state := "▶️"
+		if r.Paused {
+			state = "⏸"
+		}
+		fmt.Fprintf(&s, "%s <code>%s</code>\n   %d matched so far\n", state, html.EscapeString(r.Rule), r.Matched)
+	}
+	return s.String()
+}
+
+// chatPreamble opens every new conversation, since claudeweb's system prompt
+// is its own.
+const chatPreamble = `[I am writing from Telegram, through my unegui.mn watch bot (uneguictl). Use the unegui connector: search, show_advert, categories and filters look at unegui.mn, Mongolia's classifieds site; list_rules, set_rule, pause_rule, resume_rule, remove_rule and check_now manage the rules the bot watches. The bot sends every new match, and every price drop, to this Telegram chat by itself. Sellers' phone numbers are not available to you: tell me to tap /phone_<id> under an advert. Reply briefly, in the language I write in; Telegram shows your reply as plain text with **bold**, ` + "`code`" + ` and links, nothing more.]`
+
+// talk sends a message that is not a command to Claude, in the claudeweb
+// chat the last one went to, and relays the answer.
+func (b *bot) talk(ctx context.Context, text string) {
+	if b.claude == nil {
+		b.reply(ctx, "Chatting with Claude is not set up here. /help lists the commands.")
+		return
+	}
+	if b.tg != nil {
+		defer b.tg.KeepTyping(ctx)()
+	}
+	var ref watch.ChatRef
+	b.withState(func(st *watch.State) { ref = st.Chat })
+	for attempt := 0; attempt < 2; attempt++ {
+		prompt, fresh := text, ref.ID == ""
+		if fresh {
+			chat, err := b.claude.NewChat(ctx, "unegui.mn (Telegram)", b.model, []string{b.connector})
+			if err != nil {
+				b.reply(ctx, "⚠️ "+html.EscapeString(err.Error()))
+				return
+			}
+			ref = watch.ChatRef{ID: chat.ID}
+			prompt = chatPreamble + "\n\n" + text
+		}
+		r, err := b.claude.Send(ctx, ref.ID, ref.Parent, prompt)
+		if err != nil && !fresh && strings.Contains(err.Error(), "answered 404") {
+			// The chat was deleted in claudeweb: start a new one.
+			ref = watch.ChatRef{}
+			continue
+		}
+		if err != nil {
+			msg := err.Error()
+			if errors.Is(err, claudeweb.ErrBusy) {
+				msg = "Claude is still answering your previous message; wait for it, then send this again."
+			}
+			b.reply(ctx, "⚠️ "+html.EscapeString(msg))
+			return
+		}
+		ref.Parent = r.ID
+		b.withState(func(st *watch.State) { st.Chat = ref })
+		answer := r.Text
+		if answer == "" {
+			answer = "(Claude finished without writing anything.)"
+		}
+		chunks := splitMessage(answer, messageBudget)
+		if fresh && b.chatURL != "" {
+			chunks[len(chunks)-1] += "\n\n<i>Also in claudeweb: " + html.EscapeString(b.chatURL+"/chat/"+ref.ID) + "</i>"
+		}
+		for _, c := range chunks {
+			b.reply(ctx, c)
+		}
+		return
+	}
+}
+
+var (
+	mdBoldRE = regexp.MustCompile(`\*\*([^*\n]+)\*\*`)
+	mdCodeRE = regexp.MustCompile("`([^`\n]+)`")
+	mdLinkRE = regexp.MustCompile(`\[([^\]\n]+)\]\((https?://[^)\s]+)\)`)
+	mdHeadRE = regexp.MustCompile(`(?m)^#{1,6} +(.+)$`)
+)
+
+// splitMessage turns Claude's Markdown into Telegram's HTML subset, in
+// pieces of at most n characters cut at line ends.
+func splitMessage(md string, n int) []string {
+	var out []string
+	var cur strings.Builder
+	flush := func() {
+		if cur.Len() > 0 {
+			out = append(out, cur.String())
+			cur.Reset()
+		}
+	}
+	for _, line := range strings.Split(md, "\n") {
+		h := html.EscapeString(line)
+		h = mdHeadRE.ReplaceAllString(h, "<b>$1</b>")
+		h = mdBoldRE.ReplaceAllString(h, "<b>$1</b>")
+		h = mdCodeRE.ReplaceAllString(h, "<code>$1</code>")
+		h = mdLinkRE.ReplaceAllString(h, `<a href="$2">$1</a>`)
+		if utf8.RuneCountInString(cur.String())+utf8.RuneCountInString(h)+1 > n {
+			flush()
+		}
+		if utf8.RuneCountInString(h) > n {
+			// One enormous line: send it plain, cut.
+			out = append(out, escapeTruncate(line, n))
+			continue
+		}
+		if cur.Len() > 0 {
+			cur.WriteString("\n")
+		}
+		cur.WriteString(h)
+	}
+	flush()
+	if len(out) == 0 {
+		out = []string{""}
+	}
+	return out
 }
 
 // advertID takes an advert id, slug or URL.
@@ -579,6 +821,8 @@ func advertID(s string) (int64, error) {
 func botHelp() string {
 	return `I watch unegui.mn and send you every new advert that matches your rules, with its price, battery, features, seller, description and photo. When a match gets cheaper, I tell you.
 
+💬 Anything that is not a command goes to Claude (Sonnet, in claudeweb), which can search unegui.mn and set up rules for you: "find a 15 Pro Max under 2.2m with original parts and watch for new ones". /new starts a fresh conversation.
+
 /add &lt;rule&gt; — add a rule, or replace one with the same name
 /rules — list the rules
 /pause &lt;name&gt;, /resume &lt;name&gt;, /remove &lt;name&gt;
@@ -588,5 +832,5 @@ func botHelp() string {
 A rule:
 <pre>` + html.EscapeString(ruleHelp) + `</pre>
 Example:
-<code>/add promax category=utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro-max max=2.5m battery=90 cycles=100 exclude=solis|солис</code>`
+<code>/add promax category=utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro-max max=2.5m battery=90 cycles=100 original=yes</code>`
 }

@@ -30,5 +30,25 @@ steal each other's messages. Telegram lets a bot message you only after you have
 kubectl logs -n uneguictl deploy/uneguictl -f
 ```
 
+## Claude: the connector and the chat
+
+The bot serves an MCP connector on port 8790 (`--connector`, Service `uneguictl-connector`):
+unegui.mn lookups and the rules, no phone tool. Only claudeweb's api pod may reach it
+(`k8s/networkpolicy.yaml` here, and the matching egress rule in claudeweb's
+`k8s/networkpolicy.yaml`, which also lets this bot call claudeweb's API). Telegram messages that
+are not commands go to a claudeweb chat (Sonnet) with the connector on.
+
+```bash
+kubectl apply -f k8s/networkpolicy.yaml        # and claudeweb/k8s/networkpolicy.yaml
+TOKEN=$(openssl rand -hex 32)
+CW=$(kubectl -n claudeweb get secret claudeweb-api -o jsonpath='{.data.CLAUDEWEB_API_TOKEN}' | base64 -d)
+kubectl -n uneguictl patch secret uneguictl-secrets --type merge --patch-file \
+  <(printf '{"stringData":{"UNEGUICTL_CONNECTOR_TOKEN":"%s","CLAUDEWEB_API_TOKEN":"%s"}}' "$TOKEN" "$CW")
+```
+
+Then register the connector in claudeweb as `unegui` (Settings → Connectors, or its API):
+transport `http`, URL `http://uneguictl-connector.uneguictl.svc:8790/mcp`, header
+`Authorization: Bearer $TOKEN`. Then `unset TOKEN CW`.
+
 Rules live in the state file (`/data/watch.json` on the PVC) and are managed from Telegram
 with `/add`, `/rules`, `/pause`, `/remove`; see the README.

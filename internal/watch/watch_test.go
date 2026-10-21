@@ -162,3 +162,21 @@ func TestTelegramUpdates(t *testing.T) {
 		t.Errorf("msgs = %+v", msgs)
 	}
 }
+
+func TestMentionsReplaced(t *testing.T) {
+	cases := map[string]bool{
+		"delgets baterry solisonoos uur asuudalgui bh100": true,
+		"Ориг дэлгэц солиулсан":                           true,
+		"Battery solisn oor asuudlgu":                     true,
+		"Original camera solison":                         true,
+		"battery replaced last month":                     true,
+		"zadargaa oroogui, ymar ch yum soliogui":          false,
+		"юу ч солиогүй, задаргаа ороогүй":                 false,
+		"bh100 cc 50 shinere zarna":                       false,
+	}
+	for text, want := range cases {
+		if got := MentionsReplaced(text); got != want {
+			t.Errorf("MentionsReplaced(%q) = %v", text, got)
+		}
+	}
+}

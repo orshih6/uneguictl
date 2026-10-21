@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -74,28 +75,36 @@ type searchResult struct {
 	Title string        `json:"title"`
 	Total int           `json:"total"`
 	Items []unegui.Item `json:"items"`
+
+	// page is the last page fetched, fetched how many adverts were looked
+	// at, and partial true when a price sort could not see them all.
+	page    *unegui.Page
+	fetched int
+	partial bool
 }
 
-func runSearch(cmd *cobra.Command, text string, o searchOptions) error {
+// searchItems runs a search the way the search command does: filtered,
+// and with price sorting fixed across the paid tiers.
+func searchItems(ctx context.Context, c *unegui.Client, text string, o searchOptions) (*searchResult, error) {
 	if o.limit < 1 || o.limit > maxLimit {
-		return fmt.Errorf("--limit must be between 1 and %d", maxLimit)
+		return nil, fmt.Errorf("--limit must be between 1 and %d", maxLimit)
 	}
 	q := unegui.Query{Category: o.category, Text: text}
 	var err error
 	if q.PriceMin, err = parsePrice(o.min); err != nil {
-		return fmt.Errorf("--min: %w", err)
+		return nil, fmt.Errorf("--min: %w", err)
 	}
 	if q.PriceMax, err = parsePrice(o.max); err != nil {
-		return fmt.Errorf("--max: %w", err)
+		return nil, fmt.Errorf("--max: %w", err)
 	}
 	if q.PriceMin > 0 && q.PriceMax > 0 && q.PriceMin > q.PriceMax {
-		return fmt.Errorf("--min %d is above --max %d", q.PriceMin, q.PriceMax)
+		return nil, fmt.Errorf("--min %d is above --max %d", q.PriceMin, q.PriceMax)
 	}
 	if q.Ordering, err = ordering(o.sort, text); err != nil {
-		return err
+		return nil, err
 	}
 	if q.Filters, err = parseFilters(o.filters); err != nil {
-		return err
+		return nil, err
 	}
 	// Filtering on our side throws some adverts away, so fetch full pages
 	// rather than exactly --limit.
@@ -105,16 +114,11 @@ func runSearch(cmd *cobra.Command, text string, o searchOptions) error {
 		q.PageSize = unegui.MaxPageSize
 	}
 
-	c, err := client()
-	if err != nil {
-		return err
-	}
-	ctx := cmd.Context()
 	page, err := c.Search(ctx, q)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	res := searchResult{Query: text, Title: page.Title, Total: page.Count}
+	res := &searchResult{Query: text, Title: page.Title, Total: page.Count}
 	keep := itemFilter(text, o)
 	// The site sends VIP adverts, then Онцгой, then the rest, each tier in
 	// price order when sorted by price. So the true cheapest --limit are
@@ -141,14 +145,12 @@ func runSearch(cmd *cobra.Command, text string, o searchOptions) error {
 			break
 		}
 		if page, err = c.Next(ctx, page); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if byPrice {
 		sortByPrice(res.Items, q.Ordering == "expensive")
-		if regular < o.limit && page.More() && !flagJSON {
-			fmt.Fprintf(cmd.ErrOrStderr(), "Sorted the first %d adverts only; narrow the search for an exact order.\n", fetched)
-		}
+		res.partial = regular < o.limit && page.More()
 	}
 	if len(res.Items) > o.limit {
 		res.Items = res.Items[:o.limit]
@@ -156,7 +158,23 @@ func runSearch(cmd *cobra.Command, text string, o searchOptions) error {
 	if res.Items == nil {
 		res.Items = []unegui.Item{}
 	}
+	res.page, res.fetched = page, fetched
+	return res, nil
+}
 
+func runSearch(cmd *cobra.Command, text string, o searchOptions) error {
+	c, err := client()
+	if err != nil {
+		return err
+	}
+	res, err := searchItems(cmd.Context(), c, text, o)
+	if err != nil {
+		return err
+	}
+	if res.partial && !flagJSON {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Sorted the first %d adverts only; narrow the search for an exact order.\n", res.fetched)
+	}
+	page := res.page
 	if !flagJSON {
 		note := fmt.Sprintf("%d adverts match", res.Total)
 		if text != "" {

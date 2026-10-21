@@ -26,6 +26,17 @@ var (
 	cyclesRE = regexp.MustCompile(`(?:\bcc|\bcycles?(?:\s*count)?|цикл)\s*[:=\-–]?\s*(\d{1,4})\b`)
 )
 
+// replacedRE finds a seller saying a part was replaced: "solison",
+// "солисон", "солиулсан", "replaced". The negations sellers use for the
+// opposite ("soliogui", "солиогүй") do not contain these stems.
+var replacedRE = regexp.MustCompile(`solis|soliul|soliulsan|солис|солиул|сольс|replaced|replacement`)
+
+// MentionsReplaced reports whether an advert's text says a part was
+// replaced.
+func MentionsReplaced(text string) bool {
+	return replacedRE.MatchString(strings.ToLower(text))
+}
+
 // ParseBattery reads battery health and cycle count from an advert's title
 // and description. A figure outside what a phone can show is ignored rather
 // than trusted.

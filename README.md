@@ -86,19 +86,20 @@ Rules are managed from the chat:
 | `/phone <id>` | The seller's number for one advert; each message carries a tappable `/phone_<id>` |
 
 ```
-/add promax category=utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro-max max=2.5m battery=90 cycles=100 exclude=solis|солис
+/add promax category=utas--dugaar/gar-utas-ba-utasnuud/iphone/iphone-15-pro-max max=2.5m battery=90 cycles=100 original=yes
 ```
 
 Rule keys: `category=` (path or a category URL copied from the site), `q=` (words, `+` for
 spaces; bare words work too), `min=` / `max=`, `filter=` (repeatable), `battery=` (lowest
 health %), `cycles=` (most cycles), `unstated=yes`, `include=` / `exclude=` (case-insensitive
 regular expressions over title and description, repeatable), `match=yes`, `nopromoted=yes`,
-`limit=` (newest adverts to look through, default 200).
+`original=yes` (skip adverts that say a part was replaced), `limit=` (newest adverts to look
+through, default 200). Values with spaces go in quotes: `include="original screen"`.
 
 Battery health and cycles are read from what the seller wrote (`bh100`, `BH-89%`,
 `Battery 91%`, `Баттерей 89`, `cc 50`). Every figure a seller gives must be within the rule,
 and at least one bounded figure must be given, unless `unstated=yes`. A replaced battery also
-shows 100%, so exclude "solis"/"солис" (replaced) when you want original parts.
+shows 100%, so add `original=yes` when you want original parts.
 
 The bot obeys only `TELEGRAM_CHAT_ID` and ignores every other chat. Give it a bot of its own
 from @BotFather: it reads the bot's messages with `getUpdates`, which a bot shared with
@@ -107,6 +108,16 @@ another program would fight over.
 ```bash
 TELEGRAM_BOT_TOKEN=… TELEGRAM_CHAT_ID=… uneguictl watch --state /var/lib/uneguictl/watch.json
 ```
+
+**Claude.** A message to the bot that is not a command goes to Claude (Sonnet) in
+[claudeweb](https://github.com/orshih6/claudeweb), in a chat with the bot's connector turned on,
+so you can ask in your own words ("find a 15 Pro Max under 2.2m with original parts and watch for
+new ones"); `/new` starts a new conversation. `--connector :8790` serves that connector over MCP
+(streamable HTTP at `/mcp`, behind `UNEGUICTL_CONNECTOR_TOKEN`): `search`, `show_advert`,
+`categories`, `filters`, `list_rules`, `set_rule`, `pause_rule`, `resume_rule`, `remove_rule`,
+`check_now`. A rule changed through it is announced in Telegram. There is no phone tool. The chat
+needs `CLAUDEWEB_API_URL` and `CLAUDEWEB_API_TOKEN`; `CLAUDEWEB_MODEL` (default `sonnet`),
+`CLAUDEWEB_CONNECTOR` (default `unegui`) and `CLAUDEWEB_WEB_URL` (to link the chat) are optional.
 
 `--state` keeps the rules, every advert each rule has looked at and the Telegram position;
 adverts unseen for 30 days are forgotten. `--rule '<as /add takes it>'` adds a rule at start.

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/orshih6/uneguictl/internal/unegui"
@@ -24,12 +25,51 @@ const ruleHelp = `<name> key=value…  (words without "=" are the search text)
   battery=   lowest battery health % the text must state
   cycles=    most charge cycles the text may state
   unstated=yes  also keep adverts that state neither
+  original=yes  skip adverts that say a part (battery, screen…) was replaced
   include= exclude=  regular expression over title and description, repeatable
   match=yes  title must contain every search word
   nopromoted=yes  leave out VIP / Онцгой adverts
   limit=     newest adverts to look through (default 200, at most 1000)`
 
 var ruleNameRE = regexp.MustCompile(`^[\p{L}\p{N}_-]{1,40}$`)
+
+// splitArgs splits a command line into words, keeping key="several words"
+// (or with ' or a phone keyboard's “curly” quotes) as one word without the
+// quotes.
+func splitArgs(s string) []string {
+	var words []string
+	var cur strings.Builder
+	var quote rune
+	in := false
+	for _, r := range s {
+		switch {
+		case quote != 0:
+			if r == quote || (quote == '“' && r == '”') {
+				quote = 0
+			} else {
+				cur.WriteRune(r)
+			}
+		case r == '"' || r == '\'' || r == '“' || r == '‘':
+			quote, in = r, true
+			if r == '‘' {
+				quote = '’'
+			}
+		case unicode.IsSpace(r):
+			if in {
+				words = append(words, cur.String())
+				cur.Reset()
+				in = false
+			}
+		default:
+			cur.WriteRune(r)
+			in = true
+		}
+	}
+	if in {
+		words = append(words, cur.String())
+	}
+	return words
+}
 
 // parseRule reads a rule from the words after /add (or a --rule flag).
 func parseRule(words []string) (watch.Rule, error) {
@@ -75,6 +115,8 @@ func parseRule(words []string) (watch.Rule, error) {
 			r.Match, err = ruleBool(k, v)
 		case "nopromoted", "no-promoted", "no_promoted":
 			r.NoPromoted, err = ruleBool(k, v)
+		case "original":
+			r.Original, err = ruleBool(k, v)
 		case "unstated":
 			r.KeepUnstated, err = ruleBool(k, v)
 		default:
@@ -178,6 +220,9 @@ func (c *compiledRule) matches(a *unegui.Advert) (bool, watch.Battery) {
 		if re.MatchString(text) {
 			return false, bat
 		}
+	}
+	if c.Original && watch.MentionsReplaced(text) {
+		return false, bat
 	}
 	return bat.Meets(c.MinBattery, c.MaxCycles, c.KeepUnstated), bat
 }

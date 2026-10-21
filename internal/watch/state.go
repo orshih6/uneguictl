@@ -30,6 +30,8 @@ type Rule struct {
 	MinBattery   int  `json:"min_battery,omitempty"`
 	MaxCycles    int  `json:"max_cycles,omitempty"`
 	KeepUnstated bool `json:"keep_unstated,omitempty"`
+	// Original rejects adverts whose text says a part was replaced.
+	Original bool `json:"original,omitempty"`
 	// Include and Exclude are case-insensitive regular expressions over the
 	// title and description: one of Include must match, none of Exclude.
 	Include []string `json:"include,omitempty"`
@@ -59,6 +61,7 @@ func (r Rule) String() string {
 	add("battery", strconv.Itoa(r.MinBattery))
 	add("cycles", strconv.Itoa(r.MaxCycles))
 	add("unstated", strconv.FormatBool(r.KeepUnstated))
+	add("original", strconv.FormatBool(r.Original))
 	for _, s := range r.Include {
 		add("include", s)
 	}
@@ -78,6 +81,15 @@ type State struct {
 	Seen  map[string]map[int64]*Seen `json:"seen"`
 	// Offset is the next Telegram update to ask for.
 	Offset int64 `json:"telegram_offset,omitempty"`
+	// Chat is the claudeweb chat Telegram messages continue.
+	Chat ChatRef `json:"claudeweb_chat,omitempty"`
+}
+
+// ChatRef is a claudeweb chat and the assistant message the next message
+// follows.
+type ChatRef struct {
+	ID     string `json:"id,omitempty"`
+	Parent string `json:"parent,omitempty"`
 }
 
 // Seen is one advert as a rule last saw it.
