@@ -1,0 +1,13 @@
+# The watch's state: its rules, what each has seen, and the Telegram position.
+# Retain: losing it means re-adding the rules and being sent every match again.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uneguictl-data
+  namespace: uneguictl
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 100Mi

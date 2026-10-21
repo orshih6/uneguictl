@@ -1,0 +1,81 @@
+name: Build image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy = point orshih6/manifest's apps/uneguictl at this build's sha- tag; Argo CD
+  # notices the commit and rolls the Deployment. Only for main, only after the build.
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-uneguictl
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: orshih6/manifest
+          ssh-key: ${{ secrets.MANIFEST_DEPLOY_KEY }} # write deploy key on orshih6/manifest
+
+      - name: Point apps/uneguictl at this build
+        env:
+          SUBJECT: ${{ github.event.head_commit.message }} # via env, never spliced into the script
+        run: |
+          cd apps/uneguictl
+          kustomize edit set image ghcr.io/orshih6/uneguictl=ghcr.io/orshih6/uneguictl:sha-${GITHUB_SHA}
+          git diff --quiet && { echo "already on sha-${GITHUB_SHA}"; exit 0; }
+          git config user.name "uneguictl-ci"
+          git config user.email "actions@github.com"
+          git commit -am "uneguictl: sha-${GITHUB_SHA::7} ($(printf '%s' "$SUBJECT" | head -1 | cut -c1-60))"
+          git push
