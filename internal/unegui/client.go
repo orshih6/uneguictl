@@ -25,7 +25,7 @@ const BaseURL = "https://www.unegui.mn"
 
 // The User-Agent has to name the same Chrome version as the TLS profile, or
 // the two disagree and Cloudflare notices.
-const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
 
 var (
 	// ErrBlocked means Cloudflare answered instead of the site.
@@ -45,7 +45,7 @@ type Client struct {
 // New returns a client for BaseURL.
 func New() (*Client, error) {
 	c, err := tls_client.NewHttpClient(tls_client.NewNoopLogger(),
-		tls_client.WithClientProfile(profiles.Chrome_133),
+		tls_client.WithClientProfile(profiles.Chrome_152),
 		tls_client.WithTimeoutSeconds(30),
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
 	)
